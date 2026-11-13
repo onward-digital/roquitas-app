@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Roquitas</title>
+  <meta name="description" content="Movimientos de Roquitas">
+  <meta name="theme-color" content="#15110e">
+  <meta name="color-scheme" content="dark">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Roquitas">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Primera vez: PIN y nombre -->
+  <main id="vista-ingreso" class="vista" hidden>
+    <form id="form-ingreso" class="ingreso" autocomplete="off">
+      <img src="icons/icon-192.png" alt="" class="logo" width="88" height="88">
+      <h1>Roquitas</h1>
+      <p class="suave">Poné el PIN y decinos quién sos. Es por única vez en este celular.</p>
+
+      <label class="campo">
+        <span>PIN</span>
+        <input id="ingreso-pin" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" required>
+      </label>
+
+      <div class="campo">
+        <span>¿Quién carga?</span>
+        <div id="ingreso-nombre" class="grupo dos"></div>
+      </div>
+
+      <p id="ingreso-error" class="error" role="alert"></p>
+      <button id="ingreso-boton" type="submit" class="boton principal">Entrar</button>
+    </form>
+  </main>
+
+  <!-- Pantalla principal -->
+  <main id="vista-principal" class="vista" hidden>
+    <header class="barra">
+      <div>
+        <h1>Roquitas</h1>
+        <p id="mes" class="suave"></p>
+      </div>
+      <button id="btn-actualizar" type="button" class="boton icono" aria-label="Actualizar">↻</button>
+    </header>
+
+    <p id="estado" class="estado" hidden></p>
+
+    <section class="tarjetas" aria-label="Totales del mes">
+      <div class="tarjeta">
+        <span class="rotulo">Ventas del mes</span>
+        <strong id="t-ventas">—</strong>
+      </div>
+      <div class="tarjeta">
+        <span class="rotulo">Ganancia del mes</span>
+        <strong id="t-ganancia">—</strong>
+        <span class="sub">ventas − costo de lo vendido</span>
+      </div>
+      <div class="tarjeta">
+        <span class="rotulo">Caja del mes</span>
+        <strong id="t-caja">—</strong>
+        <span class="sub" id="t-caja-sub">ingresos − egresos</span>
+      </div>
+      <div class="tarjeta">
+        <span class="rotulo">Ahorro acumulado</span>
+        <strong id="t-ahorro">—</strong>
+        <span class="sub" id="t-ahorro-sub"></span>
+      </div>
+    </section>
+
+    <button id="btn-anotar" type="button" class="boton principal grande">+ Anotar un movimiento</button>
+
+    <section class="historial" aria-label="Historial">
+      <h2>Historial</h2>
+      <div id="filtros" class="grupo tres"></div>
+      <input id="buscar" type="search" placeholder="Buscar…" aria-label="Buscar en el historial" autocomplete="off">
+      <ul id="lista"></ul>
+      <p id="lista-vacia" class="suave centro" hidden></p>
+    </section>
+
+    <footer class="pie">
+      <span id="quien" class="suave"></span>
+      <button id="btn-salir" type="button" class="enlace">Salir</button>
+    </footer>
+  </main>
+
+  <!-- Anotar un movimiento -->
+  <main id="vista-anotar" class="vista" hidden>
+    <header class="barra">
+      <button id="btn-volver" type="button" class="boton icono" aria-label="Volver">‹</button>
+      <h1 class="titulo-form">Anotar un movimiento</h1>
+      <span class="hueco"></span>
+    </header>
+
+    <form id="form-mov" autocomplete="off" novalidate>
+      <div id="f-tipo" class="grupo dos tipo"></div>
+
+      <div class="campo">
+        <span>Categoría</span>
+        <div id="f-categorias" class="grupo flexible"></div>
+      </div>
+
+      <label class="campo">
+        <span>Fecha</span>
+        <input id="f-fecha" type="date" required>
+      </label>
+
+      <div id="campos-venta">
+        <label class="campo">
+          <span>Cliente / canal</span>
+          <input id="f-cliente" type="text" list="clientes" maxlength="120" placeholder="Feria, Instagram, kiosco…">
+          <datalist id="clientes"></datalist>
+        </label>
+
+        <div class="campo">
+          <span>Producto</span>
+          <div id="f-productos" class="grupo flexible"></div>
+        </div>
+
+        <div class="campo">
+          <span>Cantidad</span>
+          <div class="contador">
+            <button id="f-menos" type="button" class="boton" aria-label="Una menos">−</button>
+            <input id="f-cantidad" type="text" inputmode="numeric" pattern="[0-9]*" aria-label="Cantidad">
+            <button id="f-mas" type="button" class="boton" aria-label="Una más">+</button>
+          </div>
+        </div>
+
+        <div class="campo">
+          <span>Medio de pago</span>
+          <div id="f-medios" class="grupo dos"></div>
+        </div>
+
+        <label class="campo">
+          <span>Precio unitario ($)</span>
+          <input id="f-precio" type="text" inputmode="decimal">
+        </label>
+
+        <div class="total">
+          <span>Monto</span>
+          <strong id="f-total">$ 0,00</strong>
+        </div>
+      </div>
+
+      <div id="campos-otro">
+        <label class="campo">
+          <span>Monto ($)</span>
+          <input id="f-monto" type="text" inputmode="decimal" placeholder="0">
+        </label>
+      </div>
+
+      <label class="campo">
+        <span>Detalle</span>
+        <input id="f-detalle" type="text" maxlength="300" placeholder="Opcional">
+      </label>
+
+      <p id="f-error" class="error" role="alert"></p>
+      <button type="submit" class="boton principal grande">Guardar</button>
+    </form>
+  </main>
+
+  <div id="aviso" class="aviso" role="status" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
