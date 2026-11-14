@@ -1,14 +1,21 @@
 :root {
-  --fondo: #15110e;
-  --panel: #211a15;
-  --panel-2: #2d231b;
-  --borde: #3d3027;
-  --texto: #f5ede5;
-  --suave: #b8a898;
-  --acento: #e9a35c;
-  --acento-texto: #24160a;
-  --verde: #74d39b;
-  --rojo: #f47f73;
+  --fondo: #0B0A10;
+  --panel: #14111C;
+  --panel-2: #1D1830;
+  --borde: #3B2A5C;
+  --texto: #FFFFFF;
+  --suave: #C4A7F5;
+  --acento: #A855F7;
+  --acento-texto: #0B0A10;
+  --verde: #4ADE60;
+  --rojo: #F0507A;
+  --sobre-color: #0B0A10;      /* texto sobre verde, rojo o violeta */
+  --nota-fondo: #1E1533;       /* franja de estado y etiqueta "sin enviar" */
+  --nota-borde: #3B2A5C;
+  --nota-texto: #C4A7F5;
+  --aviso-fondo: #FFFFFF;
+  --aviso-texto: #0B0A10;
+  --sombra: rgba(0, 0, 0, 0.6);
   --radio: 14px;
 }
 
@@ -76,7 +83,7 @@ button, input { font: inherit; color: inherit; }
 .enlace {
   background: none;
   border: 0;
-  color: var(--acento);
+  color: var(--suave);
   padding: 12px 4px;
   text-decoration: underline;
   cursor: pointer;
@@ -95,8 +102,8 @@ button, input { font: inherit; color: inherit; }
   color: var(--acento-texto);
 }
 .grupo.tipo .boton { min-height: 60px; font-size: 1.1rem; }
-.grupo.tipo .boton[data-valor="Ingreso"][aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: #0d2417; }
-.grupo.tipo .boton[data-valor="Egreso"][aria-pressed="true"] { background: var(--rojo); border-color: var(--rojo); color: #2b0d0a; }
+.grupo.tipo .boton[data-valor="Ingreso"][aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: var(--sobre-color); }
+.grupo.tipo .boton[data-valor="Egreso"][aria-pressed="true"] { background: var(--rojo); border-color: var(--rojo); color: var(--sobre-color); }
 
 /* Campos ------------------------------------------------------------------ */
 
@@ -114,7 +121,7 @@ input[type="text"], input[type="password"], input[type="date"], input[type="sear
   font-size: 17px; /* 16px o más: iOS no hace zoom al enfocar */
   appearance: none;
 }
-input::placeholder { color: #8a7b6d; }
+input::placeholder { color: var(--suave); opacity: 1; }
 input[type="date"] { color-scheme: dark; }
 
 .contador { display: grid; grid-template-columns: 64px 1fr 64px; gap: 8px; }
@@ -159,9 +166,9 @@ input[type="date"] { color-scheme: dark; }
   margin-bottom: 12px;
   padding: 10px 14px;
   border-radius: var(--radio);
-  background: #3a2c14;
-  border: 1px solid #5d4720;
-  color: #f3d9a4;
+  background: var(--nota-fondo);
+  border: 1px solid var(--nota-borde);
+  color: var(--nota-texto);
   font-size: 0.95rem;
 }
 
@@ -188,6 +195,10 @@ input[type="date"] { color-scheme: dark; }
 .historial { margin-top: 28px; }
 .historial input[type="search"] { margin-top: 10px; }
 .grupo.tres .boton { min-height: 46px; }
+#filtros .boton[data-valor="Ingresos"] { color: var(--verde); }
+#filtros .boton[data-valor="Egresos"] { color: var(--rojo); }
+#filtros .boton[data-valor="Ingresos"][aria-pressed="true"] { background: var(--verde); border-color: var(--verde); color: var(--sobre-color); }
+#filtros .boton[data-valor="Egresos"][aria-pressed="true"] { background: var(--rojo); border-color: var(--rojo); color: var(--sobre-color); }
 
 #lista { list-style: none; margin: 12px 0 0; padding: 0; }
 #lista li {
@@ -208,8 +219,8 @@ input[type="date"] { color-scheme: dark; }
   margin-left: 6px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: #3a2c14;
-  color: #f3d9a4;
+  background: var(--nota-fondo);
+  color: var(--nota-texto);
   font-size: 0.72rem;
   font-weight: 600;
   vertical-align: middle;
@@ -234,13 +245,13 @@ input[type="date"] { color-scheme: dark; }
   margin: 0 auto;
   padding: 14px 16px;
   border-radius: var(--radio);
-  background: #f5ede5;
-  color: #1c140e;
+  background: var(--aviso-fondo);
+  color: var(--aviso-texto);
   font-weight: 600;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 30px var(--sombra);
   z-index: 10;
 }
-.aviso.malo { background: var(--rojo); color: #2b0d0a; }
+.aviso.malo { background: var(--rojo); color: var(--sobre-color); }
 
 @media (prefers-reduced-motion: reduce) {
   .boton:active { transform: none; }

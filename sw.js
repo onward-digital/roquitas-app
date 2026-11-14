@@ -3,7 +3,7 @@
 //
 // Al cambiar cualquier archivo de la app, subí este número para que los
 // celulares tomen la versión nueva.
-const CACHE = 'roquitas-v1';
+const CACHE = 'roquitas-v2';
 
 const ARCHIVOS = [
   './',
