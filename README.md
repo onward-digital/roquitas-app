@@ -38,6 +38,7 @@ Qué hace `setup()`:
 | VENTAS | La tabla pasa a leer las ventas desde Movimientos. Se van las ventas de ejemplo y la fila TOTALES, la guía pasa a la columna O y se agrega la columna M "Canal de venta". |
 | Resumen mensual | Se crea. Una fila por mes, toda calculada. |
 | Costos y Precios | No se toca. |
+| Eliminados | No la crea `setup()`: aparece sola la primera vez que se elimina un movimiento desde la app. Guarda cada fila eliminada, más "Eliminado el" y "Eliminado por". No entra en ningún cálculo. |
 
 Se puede correr todas las veces que haga falta: no borra movimientos, no pisa Config ni el respaldo.
 
@@ -87,7 +88,7 @@ El PIN y el nombre se piden una sola vez por celular. En iPhone se piden de nuev
 ## Uso diario
 
 - **Sin señal:** el movimiento queda guardado en el celular con la etiqueta "sin enviar" y se manda solo al recuperar conexión. En iPhone se manda cuando abrís la app, no en segundo plano.
-- **Corregir un error:** la app solo agrega. Para corregir o borrar, editá la fila en la pestaña Movimientos.
+- **Corregir un error:** deslizá el movimiento hacia la izquierda en el historial, tocá **Eliminar** y confirmá. Después anotalo de nuevo bien. Cualquiera de los dos puede eliminar cualquier movimiento. Lo eliminado no se pierde: pasa a la pestaña Eliminados con la fecha y quién lo eliminó. Para recuperarlo, copiá la fila de vuelta a Movimientos (columnas A a N). Si el movimiento ya está en la planilla, eliminar necesita conexión; si todavía está "sin enviar", se borra solo del celular.
 - **Cambiar precios o agregar productos:** editá la pestaña Config. Si agregás un producto, corré `setup()` otra vez para que aparezca en Resumen mensual.
 - **Ganancia y caja:** la ganancia es ventas menos costo de lo vendido; la caja es ingresos menos egresos. La materia prima solo resta en la caja.
 - **Ahorro acumulado:** 50% de toda la ganancia histórica menos los egresos de categoría "Retiro de ahorro".
@@ -112,5 +113,5 @@ El PIN y el nombre se piden una sola vez por celular. En iPhone se piden de nuev
 | `formato.js` | Montos y fechas en formato argentino |
 | `config.js` | URL de la web app |
 | `sw.js`, `manifest.webmanifest`, `icons/` | Instalación y uso sin señal |
-| `apps-script/Code.gs` | `doPost`, validación, PIN |
+| `apps-script/Code.gs` | `doPost` (agregar, listar, borrar), validación, PIN |
 | `apps-script/Setup.gs` | `setup()` y diagnóstico |

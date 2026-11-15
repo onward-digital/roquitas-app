@@ -44,3 +44,4 @@ async function llamar(pin, accion, datos) {
 
 export const agregar = (pin, movimiento) => llamar(pin, 'agregar', { movimiento });
 export const listar = (pin, mes, limite = 200) => llamar(pin, 'listar', { mes, limite });
+export const borrar = (pin, id, borradoPor) => llamar(pin, 'borrar', { id, borradoPor });

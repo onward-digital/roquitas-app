@@ -16,6 +16,8 @@
   --aviso-fondo: #FFFFFF;
   --aviso-texto: #0B0A10;
   --sombra: rgba(0, 0, 0, 0.6);
+  --velo: rgba(0, 0, 0, 0.72);  /* fondo detrás del cuadro de confirmación */
+  --ancho-eliminar: 96px;      /* igual que ANCHO_ELIMINAR en app.js */
   --radio: 14px;
 }
 
@@ -202,18 +204,44 @@ input[type="date"] { color-scheme: dark; }
 
 #lista { list-style: none; margin: 12px 0 0; padding: 0; }
 #lista li {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--borde);
+}
+/* La fila tapa el botón "Eliminar"; al deslizarla a la izquierda lo descubre. */
+.fila-frente {
+  position: relative;
+  z-index: 1;
   display: flex;
   justify-content: space-between;
   gap: 12px;
   padding: 14px 2px;
-  border-bottom: 1px solid var(--borde);
+  background: var(--fondo);
+  touch-action: pan-y; /* el scroll vertical sigue siendo del navegador */
+  transition: transform 0.18s ease-out;
+  -webkit-user-select: none;
+  user-select: none;
 }
-#lista .texto { min-width: 0; }
-#lista .titulo { font-weight: 600; overflow-wrap: anywhere; }
-#lista .datos { color: var(--suave); font-size: 0.85rem; margin-top: 2px; }
-#lista .monto { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
-#lista .ingreso-m { color: var(--verde); }
-#lista .egreso-m { color: var(--rojo); }
+#lista li.abierta .fila-frente { transform: translateX(calc(-1 * var(--ancho-eliminar))); }
+.fila-eliminar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--ancho-eliminar);
+  border: 0;
+  background: var(--rojo);
+  color: var(--sobre-color);
+  font-weight: 700;
+  cursor: pointer;
+}
+.fila-eliminar:focus-visible { outline: 2px solid var(--texto); outline-offset: -4px; }
+#lista .texto, .dialogo .resumen > div:first-child { min-width: 0; }
+#lista .titulo, .dialogo .titulo { font-weight: 600; overflow-wrap: anywhere; }
+#lista .datos, .dialogo .datos { color: var(--suave); font-size: 0.85rem; margin-top: 2px; }
+#lista .monto, .dialogo .monto { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#lista .ingreso-m, .dialogo .ingreso-m { color: var(--verde); }
+#lista .egreso-m, .dialogo .egreso-m { color: var(--rojo); }
 #lista .pendiente {
   display: inline-block;
   margin-left: 6px;
@@ -233,6 +261,38 @@ input[type="date"] { color-scheme: dark; }
   margin-top: 24px;
   font-size: 0.9rem;
 }
+
+/* Confirmación ------------------------------------------------------------ */
+
+.capa {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--velo);
+}
+.dialogo {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+.dialogo .resumen {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 4px 0 20px;
+  padding: 14px;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+.boton.peligro { background: var(--rojo); border-color: var(--rojo); color: var(--sobre-color); }
 
 /* Aviso flotante ---------------------------------------------------------- */
 
@@ -255,4 +315,5 @@ input[type="date"] { color-scheme: dark; }
 
 @media (prefers-reduced-motion: reduce) {
   .boton:active { transform: none; }
+  .fila-frente { transition: none; }
 }

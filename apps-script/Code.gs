@@ -4,6 +4,7 @@
  * doPost recibe JSON como text/plain (evita el preflight de CORS):
  *   { pin, accion: "agregar", movimiento: {...} }
  *   { pin, accion: "listar", mes: "2026-11", limite: 100 }
+ *   { pin, accion: "borrar", id, borradoPor }
  * doGet es solo un chequeo de vida: el PIN nunca viaja en la URL.
  *
  * El PIN vive en Propiedades del script (clave PIN), nunca en el código.
@@ -17,6 +18,7 @@ const HOJA_COSTOS = 'Costos y Precios';
 const HOJA_VENTAS = 'VENTAS';
 const HOJA_RESPALDO = 'VENTAS (respaldo)';
 const HOJA_RESUMEN = 'Resumen mensual';
+const HOJA_ELIMINADOS = 'Eliminados';
 
 // Columnas de "Movimientos" (A..N). El orden es parte del contrato con las fórmulas.
 const ENCABEZADOS_MOV = [
@@ -62,6 +64,7 @@ function doPost(e) {
 
     if (pedido.accion === 'agregar') return responder_(agregar_(pedido.movimiento));
     if (pedido.accion === 'listar') return responder_(listar_(pedido));
+    if (pedido.accion === 'borrar') return responder_(borrar_(pedido));
     return responder_(error_('DATOS_INVALIDOS', 'Acción desconocida.'));
   } catch (err) {
     console.error(err);
@@ -182,13 +185,10 @@ function agregar_(m) {
   lock.waitLock(20000);
   try {
     const hoja = hojaMov_(ss);
-    const ultima = hoja.getLastRow();
-    if (ultima >= 2) {
-      const ids = hoja.getRange(2, 1, ultima - 1, 1).getValues();
-      for (let i = 0; i < ids.length; i++) {
-        if (String(ids[i][0]) === id) return { ok: true, id: id, duplicado: true };
-      }
-    }
+    if (buscarFila_(hoja, id)) return { ok: true, id: id, duplicado: true };
+    // Si ya fue eliminado, un reintento tardío de la cola de un celular no lo revive.
+    const eliminados = ss.getSheetByName(HOJA_ELIMINADOS);
+    if (eliminados && buscarFila_(eliminados, id)) return { ok: true, id: id, duplicado: true };
     hoja.appendRow(fila);
     const f = hoja.getLastRow();
     hoja.getRange(f, 2).setNumberFormat(FORMATO_FECHA_HORA);
@@ -200,6 +200,77 @@ function agregar_(m) {
     lock.releaseLock();
   }
   return { ok: true, id: id, duplicado: false };
+}
+
+// ---------------------------------------------------------------------------
+// borrar
+// ---------------------------------------------------------------------------
+
+/**
+ * Saca un movimiento de "Movimientos". No lo destruye: primero copia la fila a
+ * "Eliminados" (con cuándo y quién) y recién después la borra.
+ * Si el ID no está, responde ok con yaBorrado: true, así un reintento no da error.
+ * "Eliminados" no entra en ningún cálculo ni en listar.
+ */
+function borrar_(pedido) {
+  const id = texto_(pedido.id, 64);
+  if (!id) return invalido_('Falta el ID del movimiento.');
+  const borradoPor = texto_(pedido.borradoPor, 30);
+  if (PERSONAS.indexOf(borradoPor) === -1) return invalido_('Falta quién elimina (Mili o Diego).');
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const hoja = hojaMov_(ss);
+    const fila = buscarFila_(hoja, id);
+    if (!fila) return { ok: true, id: id, yaBorrado: true };
+
+    const n = ENCABEZADOS_MOV.length;
+    const valores = hoja.getRange(fila, 1, 1, n).getValues()[0].map(function (v) {
+      // Un texto editado a mano que empiece con "=" no tiene que volverse fórmula.
+      return typeof v === 'string' ? v.replace(/^[=+]+\s*/, '') : v;
+    });
+
+    const eliminados = hojaEliminados_(ss);
+    eliminados.appendRow(valores.concat([new Date(), borradoPor]));
+    const f = eliminados.getLastRow();
+    eliminados.getRange(f, 2).setNumberFormat(FORMATO_FECHA_HORA);
+    eliminados.getRange(f, 3).setNumberFormat(FORMATO_FECHA);
+    eliminados.getRange(f, 10, 1, 2).setNumberFormat(FORMATO_PESOS);
+    eliminados.getRange(f, 14).setNumberFormat(FORMATO_PESOS);
+    eliminados.getRange(f, n + 1).setNumberFormat(FORMATO_FECHA_HORA);
+
+    // Sheets no deja borrar la única fila que queda debajo de los encabezados.
+    if (hoja.getMaxRows() - hoja.getFrozenRows() <= 1) hoja.insertRowAfter(hoja.getMaxRows());
+    hoja.deleteRow(fila);
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  return { ok: true, id: id, yaBorrado: false };
+}
+
+/** Devuelve la pestaña "Eliminados"; la crea con sus encabezados si no existe. */
+function hojaEliminados_(ss) {
+  let hoja = ss.getSheetByName(HOJA_ELIMINADOS);
+  if (hoja) return hoja;
+  const encabezados = ENCABEZADOS_MOV.concat(['Eliminado el', 'Eliminado por']);
+  hoja = ss.insertSheet(HOJA_ELIMINADOS, ss.getNumSheets());
+  hoja.getRange(1, 1, 1, encabezados.length).setValues([encabezados]).setFontWeight('bold');
+  hoja.setFrozenRows(1);
+  return hoja;
+}
+
+/** Número de fila (desde 2) donde está el ID en la columna A, o 0 si no está. */
+function buscarFila_(hoja, id) {
+  const ultima = hoja.getLastRow();
+  if (ultima < 2) return 0;
+  const ids = hoja.getRange(2, 1, ultima - 1, 1).getValues();
+  for (let i = 0; i < ids.length; i++) {
+    if (String(ids[i][0]) === id) return i + 2;
+  }
+  return 0;
 }
 
 // ---------------------------------------------------------------------------

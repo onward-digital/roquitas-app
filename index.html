@@ -165,6 +165,24 @@
     </form>
   </main>
 
+  <!-- Confirmación para eliminar un movimiento -->
+  <div id="confirmar" class="capa" hidden>
+    <div class="dialogo" role="alertdialog" aria-modal="true" aria-labelledby="confirmar-titulo">
+      <h2 id="confirmar-titulo">¿Eliminar este movimiento?</h2>
+      <div class="resumen">
+        <div>
+          <div id="confirmar-detalle" class="titulo"></div>
+          <div id="confirmar-datos" class="datos"></div>
+        </div>
+        <div id="confirmar-monto" class="monto"></div>
+      </div>
+      <div class="grupo dos">
+        <button id="confirmar-no" type="button" class="boton">Cancelar</button>
+        <button id="confirmar-si" type="button" class="boton peligro">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="aviso" class="aviso" role="status" hidden></div>
 
   <script type="module" src="app.js"></script>

@@ -233,6 +233,8 @@ function pintar() {
 }
 
 function pintarLista() {
+  abierta = null; // la lista se arma de nuevo: todas las filas quedan cerradas
+  gesto = null;
   const pendientes = cola.pendientes();
   const idsPendientes = new Set(pendientes.map((m) => m.id));
   const enviados = (estado.datos ? estado.datos.movimientos : []).filter((m) => !idsPendientes.has(m.id));
@@ -266,19 +268,32 @@ function pintarLista() {
   }));
 }
 
+function tituloMov(m) {
+  if (esVenta(m.tipo, m.categoria)) {
+    return `${m.cantidad} × ${m.producto}` + (m.cliente ? ` · ${m.cliente}` : '');
+  }
+  return m.detalle || m.categoria;
+}
+
 function filaMovimiento(m) {
   const li = document.createElement('li');
+  movDeFila.set(li, m);
+
+  // Queda tapado por la fila; se descubre al deslizarla hacia la izquierda.
+  const eliminar = document.createElement('button');
+  eliminar.type = 'button';
+  eliminar.className = 'fila-eliminar';
+  eliminar.textContent = 'Eliminar';
+
+  const frente = document.createElement('div');
+  frente.className = 'fila-frente';
 
   const texto = document.createElement('div');
   texto.className = 'texto';
 
   const titulo = document.createElement('div');
   titulo.className = 'titulo';
-  if (esVenta(m.tipo, m.categoria)) {
-    titulo.textContent = `${m.cantidad} × ${m.producto}` + (m.cliente ? ` · ${m.cliente}` : '');
-  } else {
-    titulo.textContent = m.detalle || m.categoria;
-  }
+  titulo.textContent = tituloMov(m);
   if (m.pendiente) {
     const p = document.createElement('span');
     p.className = 'pendiente';
@@ -304,12 +319,173 @@ function filaMovimiento(m) {
   valor.className = 'monto ' + (egreso ? 'egreso-m' : 'ingreso-m');
   valor.textContent = monto(egreso ? -m.monto : m.monto);
 
-  li.append(texto, valor);
+  frente.append(texto, valor);
+  li.append(eliminar, frente);
   return li;
 }
 
 $('buscar').addEventListener('input', (e) => { estado.busqueda = e.target.value; pintarLista(); });
 $('btn-actualizar').addEventListener('click', refrescar);
+
+// ---------------------------------------------------------------------------
+// Eliminar un movimiento: deslizar la fila hacia la izquierda
+// ---------------------------------------------------------------------------
+
+const ANCHO_ELIMINAR = 96; // igual que --ancho-eliminar en styles.css
+const BORDE_SISTEMA = 24;  // los bordes de la pantalla quedan para el gesto "atrás" del sistema
+const movDeFila = new WeakMap();
+let abierta = null;        // la única fila con "Eliminar" a la vista
+let gesto = null;
+let finArrastre = 0;
+
+function cerrarFila() {
+  if (abierta) abierta.classList.remove('abierta');
+  abierta = null;
+}
+
+function abrirFila(li) {
+  if (abierta && abierta !== li) cerrarFila();
+  li.classList.add('abierta');
+  abierta = li;
+}
+
+const lista = $('lista');
+
+// La fila tiene touch-action: pan-y, así que el scroll vertical lo maneja el
+// navegador (y nos avisa con pointercancel) y acá solo llegan los arrastres horizontales.
+lista.addEventListener('pointerdown', (e) => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+  const li = e.target.closest('li');
+  if (!li || e.target.closest('.fila-eliminar')) return;
+  if (e.clientX < BORDE_SISTEMA || e.clientX > window.innerWidth - BORDE_SISTEMA) return;
+  gesto = {
+    li,
+    frente: li.querySelector('.fila-frente'),
+    id: e.pointerId,
+    x0: e.clientX,
+    y0: e.clientY,
+    base: li === abierta ? -ANCHO_ELIMINAR : 0,
+    pos: 0,
+    activo: false
+  };
+});
+
+lista.addEventListener('pointermove', (e) => {
+  if (!gesto || e.pointerId !== gesto.id) return;
+  const dx = e.clientX - gesto.x0;
+  const dy = e.clientY - gesto.y0;
+  if (!gesto.activo) {
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+    if (Math.abs(dy) >= Math.abs(dx)) { gesto = null; return; } // es un scroll, no un deslizamiento
+    gesto.activo = true;
+    if (abierta && abierta !== gesto.li) cerrarFila();
+    gesto.frente.style.transition = 'none';
+    try { gesto.li.setPointerCapture(e.pointerId); } catch (err) { /* sigue sin captura */ }
+  }
+  gesto.pos = Math.max(-ANCHO_ELIMINAR, Math.min(0, gesto.base + dx));
+  gesto.frente.style.transform = `translateX(${gesto.pos}px)`;
+});
+
+function terminarGesto(e) {
+  if (!gesto || e.pointerId !== gesto.id) return;
+  const g = gesto;
+  gesto = null;
+  if (!g.activo) return;
+  g.frente.style.transition = '';
+  g.frente.style.transform = '';
+  finArrastre = Date.now();
+  // Hace falta menos recorrido para seguir el gesto que para arrepentirse.
+  const abrir = g.base === 0 ? g.pos < -ANCHO_ELIMINAR / 3 : g.pos < -ANCHO_ELIMINAR * 2 / 3;
+  if (abrir) abrirFila(g.li);
+  else if (abierta === g.li) cerrarFila();
+}
+lista.addEventListener('pointerup', terminarGesto);
+lista.addEventListener('pointercancel', terminarGesto);
+
+// Tocar fuera de la fila abierta la cierra.
+document.addEventListener('pointerdown', (e) => {
+  if (abierta && !abierta.contains(e.target)) cerrarFila();
+}, true);
+
+lista.addEventListener('click', (e) => {
+  const boton = e.target.closest('.fila-eliminar');
+  if (boton) {
+    const m = movDeFila.get(boton.closest('li'));
+    if (m) eliminar(m);
+    return;
+  }
+  if (Date.now() - finArrastre < 350) return; // el clic que cierra el arrastre no cuenta
+  if (abierta && abierta.contains(e.target)) cerrarFila();
+});
+
+// Con teclado no se puede deslizar: al enfocar "Eliminar" la fila se abre sola.
+lista.addEventListener('focusin', (e) => {
+  const boton = e.target.closest('.fila-eliminar');
+  if (boton) abrirFila(boton.closest('li'));
+});
+
+// Confirmación propia de la app ----------------------------------------------
+
+let resolverConfirmacion = null;
+
+function confirmarEliminar(m) {
+  const egreso = m.tipo === 'Egreso';
+  $('confirmar-detalle').textContent = tituloMov(m);
+  $('confirmar-datos').textContent = [fechaCorta(m.fecha), m.categoria, m.cargadoPor].filter(Boolean).join(' · ');
+  $('confirmar-monto').textContent = monto(egreso ? -m.monto : m.monto);
+  $('confirmar-monto').className = 'monto ' + (egreso ? 'egreso-m' : 'ingreso-m');
+  $('confirmar').hidden = false;
+  $('confirmar-no').focus();
+  return new Promise((resolver) => { resolverConfirmacion = resolver; });
+}
+
+function cerrarConfirmacion(acepta) {
+  if (!resolverConfirmacion) return;
+  $('confirmar').hidden = true;
+  const resolver = resolverConfirmacion;
+  resolverConfirmacion = null;
+  resolver(acepta);
+}
+
+$('confirmar-no').addEventListener('click', () => cerrarConfirmacion(false));
+$('confirmar-si').addEventListener('click', () => cerrarConfirmacion(true));
+$('confirmar').addEventListener('click', (e) => { if (e.target === e.currentTarget) cerrarConfirmacion(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') cerrarConfirmacion(false); });
+
+async function eliminar(m) {
+  const acepta = await confirmarEliminar(m);
+  cerrarFila();
+  if (!acepta) return;
+
+  // Si justo se estaba enviando la cola, se espera para saber dónde quedó el movimiento.
+  if (enCurso) await enCurso;
+
+  // Todavía no llegó a la planilla: se borra solo del celular.
+  if (cola.pendientes().some((x) => x.id === m.id)) {
+    cola.quitar(m.id);
+    pintar();
+    aviso('Movimiento eliminado.');
+    return;
+  }
+
+  if (!navigator.onLine) { aviso('Necesitás conexión para eliminar.', true); return; }
+  aviso('Eliminando…');
+  try {
+    await api.borrar(estado.pin, m.id, estado.nombre);
+  } catch (err) {
+    if (err.codigo === 'SIN_CONEXION') aviso('Necesitás conexión para eliminar.', true);
+    else if (err.codigo === 'PIN_INCORRECTO') salir('El PIN ya no es correcto. Ponelo de nuevo.');
+    else aviso(err.message, true);
+    return;
+  }
+  // Sale del historial ya mismo; los totales del mes se vuelven a pedir a la planilla.
+  if (estado.datos) {
+    estado.datos.movimientos = estado.datos.movimientos.filter((x) => x.id !== m.id);
+  }
+  pintar();
+  aviso('Movimiento eliminado.');
+  refrescar();
+}
 
 // ---------------------------------------------------------------------------
 // Anotar un movimiento
@@ -451,6 +627,7 @@ $('form-mov').addEventListener('submit', (e) => {
 $('btn-anotar').addEventListener('click', abrirAnotar);
 $('btn-volver').addEventListener('click', () => history.back());
 window.addEventListener('popstate', () => {
+  cerrarConfirmacion(false);
   if (estado.pin) { mostrar('principal'); pintar(); }
 });
 

@@ -29,6 +29,11 @@ export function encolar(movimiento) {
   guardar(lista);
 }
 
+/** Saca un movimiento que todavía no se envió. */
+export function quitar(id) {
+  guardar(leer().filter((m) => m.id !== id));
+}
+
 let enviando = null;
 
 /**
